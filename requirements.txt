@@ -1,0 +1,23 @@
+# Core dependencies for Parakeet long-form transcription
+torch>=2.1.0
+torchaudio>=2.1.0
+nemo_toolkit[asr]>=2.3.0
+
+# Audio processing
+pydub>=0.25
+librosa>=0.11
+soundfile>=0.13
+
+# Data handling
+pandas>=2.2
+numpy>=1.26
+boto3
+
+# System monitoring (optional)
+psutil>=5.9
+
+# CUDA optimization (optional, improves speed)
+cuda-python>=12.3
+
+# For audio format conversion
+ffmpeg-python

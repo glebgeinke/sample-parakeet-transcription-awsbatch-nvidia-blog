@@ -193,6 +193,13 @@ aws s3 cp s3://your-output-bucket/transcription-output/your-audio-file.wav.txt .
 The solution includes comprehensive monitoring:
 
 ### CloudWatch Metrics
+
+Metrics are published to the **CWAgent** namespace. To view them in the CloudWatch console:
+1. Navigate to CloudWatch > Metrics > All metrics
+2. Select the **CWAgent** namespace
+3. Filter by InstanceId or AutoScalingGroupName
+
+Available metrics:
 - **GPU Metrics**: utilization, power draw, memory utilization
 - **System Metrics**: CPU usage, memory utilization, disk usage
 

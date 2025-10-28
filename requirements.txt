@@ -1,6 +1,7 @@
 # Core dependencies for Parakeet long-form transcription
 torch>=2.1.0
 torchaudio>=2.1.0
+torchcodec
 nemo_toolkit[asr]>=2.3.0
 
 # Audio processing

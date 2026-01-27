@@ -58,7 +58,14 @@ Parameters:
     Description: 'Security groups for compute environment in the same VPC. NOTE: A custom security group is recommended'
   RTIds:
     Type: String
-    Description: 'The IDs of the route tables.'  
+    Description: 'The IDs of the route tables.'
+  CreateS3Endpoint:
+    Type: String
+    Description: 'Create S3 VPC Gateway Endpoint. Set to No if endpoint already exists.'
+    Default: 'Yes'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
   DefaultCEMinvCpus:
     Type: Number
     Description: Minimum number of CPUs in the default compute environment. Default 0.
@@ -73,6 +80,9 @@ Parameters:
     Type: Number
     Default: 50
     Description: Size in GiB of EBS root volume
+
+Conditions:
+  ShouldCreateS3Endpoint: !Equals [!Ref CreateS3Endpoint, 'Yes']
 
 Resources:
   BatchCloudWatchAgentConfig:
@@ -247,6 +257,7 @@ Resources:
 # S3 Gateway 
   S3GatewayEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
+    Condition: ShouldCreateS3Endpoint
     Properties:
       RouteTableIds: 
         - !Ref RTIds

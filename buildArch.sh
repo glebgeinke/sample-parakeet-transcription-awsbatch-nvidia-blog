@@ -47,7 +47,22 @@ RouteTable_IDS=`aws ec2 describe-route-tables --query 'RouteTables[*].RouteTable
                  --filters Name=vpc-id,Values=${VPC_ID} --region ${AWS_REGION} --output text | sed 's/\s\+/,/g'`
 echo "export RouteTable_IDS=${RouteTable_IDS}" >> $envFileName
 
+##### Check if S3 VPC Endpoint already exists #####
+S3_ENDPOINT_EXISTS=$(aws ec2 describe-vpc-endpoints \
+  --filters "Name=vpc-id,Values=${VPC_ID}" "Name=service-name,Values=com.amazonaws.${AWS_REGION}.s3" \
+  --query 'VpcEndpoints[0].VpcEndpointId' \
+  --output text \
+  --region ${AWS_REGION})
+
+if [ "$S3_ENDPOINT_EXISTS" != "None" ] && [ -n "$S3_ENDPOINT_EXISTS" ]; then
+  echo "S3 VPC Endpoint already exists: ${S3_ENDPOINT_EXISTS}"
+  CREATE_S3_ENDPOINT="No"
+else
+  echo "No S3 VPC Endpoint found, will create one"
+  CREATE_S3_ENDPOINT="Yes"
+fi
 
 ##### Provision infrastructure #####
 aws cloudformation deploy --stack-name $project --template-file ./deployment.yaml --capabilities CAPABILITY_IAM \
---region ${AWS_REGION} --parameter-overrides VPCId=${VPC_ID} SubnetIds="${SUBNET_IDS}" SGIds="${SecurityGroup_IDS}" RTIds="${RouteTable_IDS}"
+--region ${AWS_REGION} --parameter-overrides VPCId=${VPC_ID} SubnetIds="${SUBNET_IDS}" SGIds="${SecurityGroup_IDS}" \
+RTIds="${RouteTable_IDS}" CreateS3Endpoint="${CREATE_S3_ENDPOINT}"

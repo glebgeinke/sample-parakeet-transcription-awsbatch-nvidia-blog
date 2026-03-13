@@ -1,22 +1,23 @@
-# Core dependencies for Parakeet long-form transcription
+# NVIDIA NeMo ASR framework (main branch includes streaming inference
+# support and the CUDA graph fix for cudaStreamGetCaptureInfo)
+nemo_toolkit[asr] @ git+https://github.com/NVIDIA/NeMo.git@main
+
+# Audio processing (pinned to 2.8.x — torchaudio 2.9+ has a hard dependency
+# on torchcodec which requires a matching PyTorch ABI build)
 torch==2.8.0
 torchaudio==2.8.0
-nemo_toolkit[asr]==2.4.1
-
-# Audio processing
 pydub==0.25.1
 librosa==0.11.0
 soundfile==0.13.1
 
 # Data handling
 pandas==2.3.3
-numpy==1.26.4
 boto3==1.40.45
 
 # System monitoring (optional)
 psutil==7.1.0
 
-# CUDA optimization (optional, improves speed)
+# CUDA Python bindings (required for streaming inference CUDA graphs)
 cuda-python==12.8.0
 
 # For audio format conversion

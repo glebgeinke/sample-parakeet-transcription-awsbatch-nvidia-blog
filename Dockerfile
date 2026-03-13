@@ -7,7 +7,7 @@ ENV PATH=/usr/local/bin:$PATH
 
 # Install all system dependencies in a single layer
 RUN dnf update -y && \
-    dnf install -y gcc-c++ python3.12-devel tar xz && \
+    dnf install -y gcc-c++ python3.12-devel tar xz git libsndfile && \
     ln -sf /usr/bin/python3.12 /usr/local/bin/python3 && \
     python3 -m ensurepip && \
     python3 -m pip install --no-cache-dir --upgrade pip && \
@@ -21,6 +21,9 @@ RUN curl -L https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpe
     mv ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/ && \
     chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
     rm -rf ffmpeg-master-latest-linux64-gpl
+
+# Pre-install build dependencies for NeMo from source
+RUN pip install --no-cache-dir Cython packaging
 
 # Copy and install requirements
 COPY ./requirements.txt requirements.txt

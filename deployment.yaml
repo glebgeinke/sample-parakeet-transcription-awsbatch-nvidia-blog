@@ -168,19 +168,24 @@ Resources:
       Type: MANAGED
       State: ENABLED
       ComputeResources:
+        # For Spot instances (up to 70% savings), change to SPOT_PRICE_CAPACITY_OPTIMIZED
         AllocationStrategy: BEST_FIT_PROGRESSIVE
+        # For Spot instances, add: BidPercentage: 100
         LaunchTemplate:
           LaunchTemplateId: !Ref BatchLaunchTemplate
           Version: $Latest
         UpdateToLatestImageVersion: true #use the enhanced updating of compute environments to update AMIs
         InstanceRole: !GetAtt ECSInstanceProfile.Arn
         SecurityGroupIds: !Ref SGIds
+        # For Spot, diversify instance types for better availability (e.g. add g6.2xlarge)
         InstanceTypes:
           - "g6.xlarge"
           - "g5.xlarge"
         MinvCpus: !Ref DefaultCEMinvCpus
         MaxvCpus: !Ref DefaultCEMaxvCpus
         Subnets: !Ref SubnetIds
+        # For Spot instances, change to SPOT. See:
+        # https://docs.aws.amazon.com/batch/latest/userguide/spot_fleet_IAM_role.html
         Type: EC2
         Tags:
           Name: "Inference-demo-batch"
@@ -244,6 +249,16 @@ Resources:
             Value: !Sub ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}-outbucket
           - Name: OUTPUT_FILE_PREFIX
             Value: 'transcription-output/'
+          # Buffered streaming inference for long audio files.
+          # Processes audio in overlapping chunks, reducing peak VRAM usage.
+          # - Name: STREAMING_ENABLED
+          #   Value: 'true'
+          # - Name: CHUNK_SECS
+          #   Value: '20'
+          # - Name: LEFT_CONTEXT_SECS
+          #   Value: '5.0'
+          # - Name: RIGHT_CONTEXT_SECS
+          #   Value: '3.0'
         Command:
         - python3
         - parakeet_transcribe.py

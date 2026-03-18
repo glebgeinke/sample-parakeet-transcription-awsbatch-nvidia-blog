@@ -31,6 +31,8 @@ Metadata:
         - RTIds
         - DefaultCEMinvCpus
         - DefaultCEMaxvCpus
+        - UseSpotInstances
+        - EnableStreaming
 
     ParameterLabels:
       VPCId:
@@ -45,6 +47,10 @@ Metadata:
         default: Default Queue Min vCPU count
       DefaultCEMaxvCpus:
         default: Default Queue Max vCPU count
+      UseSpotInstances:
+        default: Use Spot Instances
+      EnableStreaming:
+        default: Enable Streaming Inference
 
 Parameters:
   VPCId:
@@ -80,9 +86,25 @@ Parameters:
     Type: Number
     Default: 50
     Description: Size in GiB of EBS root volume
+  UseSpotInstances:
+    Type: String
+    Description: 'Use Spot instances for up to 70% cost savings. See: https://docs.aws.amazon.com/batch/latest/userguide/spot_fleet_IAM_role.html'
+    Default: 'No'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  EnableStreaming:
+    Type: String
+    Description: 'Enable buffered streaming inference for long audio files. Processes audio in overlapping chunks, reducing peak VRAM usage.'
+    Default: 'No'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
 
 Conditions:
   ShouldCreateS3Endpoint: !Equals [!Ref CreateS3Endpoint, 'Yes']
+  IsSpot: !Equals [!Ref UseSpotInstances, 'Yes']
+  IsStreaming: !Equals [!Ref EnableStreaming, 'Yes']
 
 Resources:
   BatchCloudWatchAgentConfig:
@@ -168,25 +190,22 @@ Resources:
       Type: MANAGED
       State: ENABLED
       ComputeResources:
-        # For Spot instances (up to 70% savings), change to SPOT_PRICE_CAPACITY_OPTIMIZED
-        AllocationStrategy: BEST_FIT_PROGRESSIVE
-        # For Spot instances, add: BidPercentage: 100
+        AllocationStrategy: !If [IsSpot, SPOT_PRICE_CAPACITY_OPTIMIZED, BEST_FIT_PROGRESSIVE]
+        BidPercentage: !If [IsSpot, 100, !Ref 'AWS::NoValue']
         LaunchTemplate:
           LaunchTemplateId: !Ref BatchLaunchTemplate
           Version: $Latest
         UpdateToLatestImageVersion: true #use the enhanced updating of compute environments to update AMIs
         InstanceRole: !GetAtt ECSInstanceProfile.Arn
         SecurityGroupIds: !Ref SGIds
-        # For Spot, diversify instance types for better availability (e.g. add g6.2xlarge)
         InstanceTypes:
           - "g6.xlarge"
+          - "g6.2xlarge"
           - "g5.xlarge"
         MinvCpus: !Ref DefaultCEMinvCpus
         MaxvCpus: !Ref DefaultCEMaxvCpus
         Subnets: !Ref SubnetIds
-        # For Spot instances, change to SPOT. See:
-        # https://docs.aws.amazon.com/batch/latest/userguide/spot_fleet_IAM_role.html
-        Type: EC2
+        Type: !If [IsSpot, SPOT, EC2]
         Tags:
           Name: "Inference-demo-batch"
         Ec2Configuration:
@@ -249,16 +268,26 @@ Resources:
             Value: !Sub ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}-outbucket
           - Name: OUTPUT_FILE_PREFIX
             Value: 'transcription-output/'
-          # Buffered streaming inference for long audio files.
-          # Processes audio in overlapping chunks, reducing peak VRAM usage.
-          # - Name: STREAMING_ENABLED
-          #   Value: 'true'
-          # - Name: CHUNK_SECS
-          #   Value: '20'
-          # - Name: LEFT_CONTEXT_SECS
-          #   Value: '5.0'
-          # - Name: RIGHT_CONTEXT_SECS
-          #   Value: '3.0'
+          - !If
+            - IsStreaming
+            - Name: STREAMING_ENABLED
+              Value: 'true'
+            - !Ref 'AWS::NoValue'
+          - !If
+            - IsStreaming
+            - Name: CHUNK_SECS
+              Value: '20'
+            - !Ref 'AWS::NoValue'
+          - !If
+            - IsStreaming
+            - Name: LEFT_CONTEXT_SECS
+              Value: '5.0'
+            - !Ref 'AWS::NoValue'
+          - !If
+            - IsStreaming
+            - Name: RIGHT_CONTEXT_SECS
+              Value: '3.0'
+            - !Ref 'AWS::NoValue'
         Command:
         - python3
         - parakeet_transcribe.py

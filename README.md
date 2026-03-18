@@ -194,24 +194,21 @@ By default, the solution uses NeMo's built-in `model.transcribe()` method, which
 
 **Buffered streaming inference** processes audio in overlapping chunks (left context + chunk + right context), keeping VRAM usage bounded regardless of audio length. In testing, a 1-hour audio file was transcribed in ~22 seconds on a single GPU using streaming mode.
 
-To enable streaming, uncomment the streaming environment variables in the job definition section of `deployment.yaml`:
+To enable streaming, set the `EnableStreaming` parameter when deploying the CloudFormation stack:
 
-```yaml
-          - Name: STREAMING_ENABLED
-            Value: 'true'
-          - Name: CHUNK_SECS
-            Value: '20'
-          - Name: LEFT_CONTEXT_SECS
-            Value: '5.0'
-          - Name: RIGHT_CONTEXT_SECS
-            Value: '3.0'
+```bash
+aws cloudformation deploy \
+  --stack-name batch-gpu-audio-transcription \
+  --template-file ./deployment.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides EnableStreaming=Yes \
+    VPCId=your-vpc-id SubnetIds=your-subnet-ids SGIds=your-sg-ids RTIds=your-rt-ids
 ```
 
-Then redeploy the CloudFormation stack. The parameters control:
+When enabled, the job definition is configured with the following default chunk parameters:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `STREAMING_ENABLED` | `false` | Set to `true` to enable streaming mode |
 | `CHUNK_SECS` | `20` | Length of each audio chunk in seconds |
 | `LEFT_CONTEXT_SECS` | `5.0` | Left context overlap for quality (larger = better quality, more compute) |
 | `RIGHT_CONTEXT_SECS` | `3.0` | Right context lookahead |
@@ -220,16 +217,18 @@ Both modes produce equivalent transcription output and can be switched without r
 
 ## Enabling Spot Instances
 
-The default deployment uses On-Demand EC2 instances. To reduce costs by up to 70%, you can switch to Spot instances.
+The default deployment uses On-Demand EC2 instances. To reduce costs by up to 70%, you can switch to Spot instances by setting the `UseSpotInstances` parameter:
 
-In `deployment.yaml`, the compute environment section contains commented-out Spot configuration. To enable Spot, replace the On-Demand settings with the Spot configuration:
+```bash
+aws cloudformation deploy \
+  --stack-name batch-gpu-audio-transcription \
+  --template-file ./deployment.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides UseSpotInstances=Yes \
+    VPCId=your-vpc-id SubnetIds=your-subnet-ids SGIds=your-sg-ids RTIds=your-rt-ids
+```
 
-- Change `AllocationStrategy` from `BEST_FIT_PROGRESSIVE` to `SPOT_PRICE_CAPACITY_OPTIMIZED`
-- Add `BidPercentage: 100` to cap at On-Demand price
-- Change `Type` from `EC2` to `SPOT`
-- Diversify instance types (e.g., add `g6.2xlarge`) for better Spot availability
-
-Then redeploy the CloudFormation stack. The job definition already includes a retry strategy (2 attempts) to handle Spot interruptions gracefully.
+This changes the compute environment to use `SPOT_PRICE_CAPACITY_OPTIMIZED` allocation strategy with a bid percentage capped at 100% of On-Demand price. The job definition already includes a retry strategy (2 attempts) to handle Spot interruptions gracefully.
 
 ## Monitoring and Observability
 

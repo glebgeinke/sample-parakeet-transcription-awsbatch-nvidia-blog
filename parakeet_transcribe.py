@@ -12,7 +12,7 @@ CLI flag. Chunk parameters are configurable via CHUNK_SECS, LEFT_CONTEXT_SECS, a
 RIGHT_CONTEXT_SECS environment variables (or equivalent CLI flags).
 
 Usage:
-    python3 parakeet_transcribe.py input_bucket_name input_file_key [--output OUTPUT] [--timestamps] [--streaming] [--verbose]
+    python3 parakeet_transcribe.py input_bucket_name input_file_key [--output OUTPUT] [--timestamps] [--batch-size N] [--device DEVICE] [--model MODEL] [--streaming] [--verbose]
 Input:
     input_bucket_name = sys.argv[1]
     input_file_key = sys.argv[2]
